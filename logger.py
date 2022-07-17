@@ -1,6 +1,8 @@
 import json
 import os
+
 import psycopg2
+
 
 class Logger:
     """Class to handle common logging of dns update checks"""
@@ -11,28 +13,30 @@ class Logger:
         self.db_host = os.getenv("DB_HOST")
         self.db_port = os.getenv("DB_PORT")
         self.db = psycopg2.connect(
-            host = self.db_host,
-            database = "dnsup_logs",
-            user = self.db_user,
-            password = self.db_pass,
-            port = self.db_port
+            host=self.db_host,
+            database="dnsup_logs",
+            user=self.db_user,
+            password=self.db_pass,
+            port=self.db_port,
         )
 
-    def log(self, message:str, response:str=""):
+    def log(
+        self, message: str, domain: str, home_ip: str, cf_ip: str, response: str = ""
+    ):
         """Standard log function inserts message and response into table"""
         if response:
-            self._with_response(message, response)
+            self._with_response(domain, home_ip, cf_ip, message, response)
         else:
-            self._without_response(message)        
+            self._without_response(domain, home_ip, cf_ip, message)
 
-    def _without_response(self, message):
-        script = """INSERT INTO logging (message, log_time) VALUES (%s, now())"""
+    def _without_response(self, domain, home_ip, cf_ip, message):
+        script = """INSERT INTO logging (domain_name, home_ip, cf_ip, message, log_time) VALUES (%s,%s,%s,%s,now())"""
         with self.db.cursor() as curs:
-            curs.execute(script, (message,))
+            curs.execute(script, (domain, home_ip, cf_ip, message))
             self.db.commit()
 
-    def _with_response(self, message, response):
-        script = """INSERT INTO logging (message, response, log_time) VALUES (%s,%s, now())"""
+    def _with_response(self, domain, home_ip, cf_ip, message, response):
+        script = """INSERT INTO logging (domain_name, home_ip, cf_ip, message, response, log_time) VALUES (%s,%s,%s,%s,%s,now())"""
         with self.db.cursor() as curs:
-            curs.execute(script, (message, response))
+            curs.execute(script, (domain, home_ip, cf_ip, message, response))
             self.db.commit()
